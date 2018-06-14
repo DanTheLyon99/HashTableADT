@@ -18,8 +18,44 @@
    int (*hashFunc)(size_t tableSize, int key)= &hashFunction;
    void (*printFunc)(void * toBePrinted) = &printData;
 
+   // Setting up names to be inserted into table
+   char * bob = "Bob";
+   char * fraser = "Fraser";
+   char * tal = "Tal";
+   char * mike = "Mike";
+   char * gates = "Bill Gates";
+   char * ryan = "Ryan";
+
+   // Creating a hashTable for testing
    HTable * testTable = createTable(10, hashFunc, destroyFunc, printFunc);
-   
+
+   // Inserting data into the table
+   insertData(testTable, 7, (void*)bob);
+   insertData(testTable, 5, (void*)fraser);
+   insertData(testTable, 2, (void*)tal);
+   insertData(testTable, 5, (void*)mike);
+   insertData(testTable, 10, (void*)gates);
+   insertData(testTable, 79, (void*)ryan);
+
+   // Removing data
+   removeData(testTable, 2);
+   removeData(testTable, 79);
+
+   printf("Should be: Bill Gates\nIt is: ");
+   printData(lookupData(testTable, 10));
+   printf("\n");
+
+   printf("Should be: Mike\nIt is: ");
+   printData(lookupData(testTable, 5));
+   printf("\n");
+
+   printf("Should be: Bob\nIt is: ");
+   printData(lookupData(testTable, 7));
+   printf("\n");
+
+   // Destroy the table
+   destroyTable(testTable);
+
    return 0;
  }
 
@@ -32,6 +68,7 @@
    // Set data and next node to NULL
    node->next = NULL;
    node->data = NULL;
+   free(node);
  }
 
  int hashFunction(size_t tableSize, int key)
@@ -47,10 +84,7 @@
 
  void printData(void *toBePrinted)
  {
-   // Cast argument to Node
-   Node * node = (Node*)toBePrinted;
-
    // Cast Node data to string and print
-   char * word = (char*)node->data;
+   char * word = (char*)toBePrinted;
    printf("%s\n", word);
  }

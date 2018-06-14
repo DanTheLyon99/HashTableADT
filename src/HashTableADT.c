@@ -21,6 +21,12 @@ HTable *createTable(size_t size, int (*hashFunction)(size_t tableSize, int key),
    newTable->destroyData = destroyData;
    newTable->printData = printData;
 
+   // Initialize each index in the table to NULL
+   for (int i = 0; i < size; i++)
+   {
+     newTable->table[i] = NULL;
+   }
+
    return newTable;
 }
 
@@ -39,8 +45,15 @@ Node *createNode(int key, void *data)
 
 void destroyTable(HTable *hashTable)
 {
-  Node * curNode = NULL;
-  Node * toDelete = NULL;
+  // Check for valid input
+  if (!hashTable)
+  {
+    return;
+  }
+
+  // To keep track of:
+  Node * curNode = NULL; // Node currently being tracked
+  Node * toDelete = NULL; // Node to be deleted
 
   // Go through each element of the table
   for (int i = 0; i < hashTable->size; i++)
@@ -61,12 +74,16 @@ void destroyTable(HTable *hashTable)
       hashTable->destroyData((void*)toDelete);
     }
   }
+
+  // Free the table and the hashTable struct
+  free(hashTable->table);
+  free(hashTable);
 }
 
 void insertData(HTable *hashTable, int key, void *data)
 {
   // Exit if hash table does not exist
-  if (!hashTable)
+  if (!hashTable || !data)
   {
     return;
   }
@@ -74,10 +91,7 @@ void insertData(HTable *hashTable, int key, void *data)
   int index;
 
   // Create a new node and update it with arguments
-  Node * newNode = createNode(key, data);
-  newNode->key = key;
-  newNode->data = data;
-  newNode->next = NULL;
+  Node * newNode = NULL;
 
   // Determine index to insert data
   index = hashTable->hashFunction(hashTable->size, key);
@@ -87,48 +101,45 @@ void insertData(HTable *hashTable, int key, void *data)
   {
     // Set the current node to the head of the collision list
     Node * curNode = hashTable->table[index];
-    Node * tempNode = curNode;
 
-    // If the first node is to be replaced
+    // If the first node in the list is to be replaced
     if (curNode->key == key)
     {
-      newNode->next = curNode->next;
-      hashTable->table[index] = newNode;
-      hashTable->destroyData(curNode);
+      curNode->data = data;
+      return;
     }
     else
     {
-      while (curNode->next)
+      // Check if any other node in the list has a matching key
+      Node * prevNode = curNode;
+      curNode = curNode->next;
+
+      // Loop through the list
+      while (curNode)
       {
-        // If the next node is to be replaced
-        if (curNode->next->key == key)
+        // If key matches with current node, update it
+        if (curNode->key == key)
         {
-          // Skip the next node and delete it
-          tempNode = curNode->next;
-          curNode->next = tempNode->next;
-          hashTable->destroyData(tempNode);
-
-          // Exit the loop since data has been updated
-          break;
-        }
-        // If the node after next is empty, set it to the new node
-        else if (curNode->next->next == NULL)
-        {
-          curNode = curNode->next;
-          curNode->next = newNode;
-
-          // Exit loop since data was added to end
-          break;
+          curNode->data = data;
+          return;
         }
 
-        // Move along the list
+        prevNode = curNode;
         curNode = curNode->next;
+      }
+
+      // Key was not found, add to end of list
+      if (!curNode)
+      {
+        newNode = createNode(key, data);
+        prevNode->next = newNode;
       }
     }
   }
   // Set the lists head at that index to the new node
   else
   {
+    newNode = createNode(key, data);
     hashTable->table[index] = newNode;
   }
 }
@@ -136,7 +147,7 @@ void insertData(HTable *hashTable, int key, void *data)
 void removeData(HTable *hashTable, int key)
 {
   // Exit if table does not exist
-  if (!hashTable)
+  if (!hashTable || !(hashTable->table))
   {
     return;
   }
@@ -181,7 +192,7 @@ void removeData(HTable *hashTable, int key)
 
 void *lookupData(HTable *hashTable, int key)
 {
-  if (!hashTable)
+  if (!hashTable || !(hashTable->table))
   {
     return NULL;
   }
